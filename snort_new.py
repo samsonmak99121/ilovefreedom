@@ -9,12 +9,13 @@ import fileinput
 import re
 import ConfigParser
 import webbrowser
-import MySQLdb
-import PIL.Image
+import MySQLdb       #pip install mysqlclient
+import PIL.Image     #pip install pillow
 import PIL.ImageTk
-import matplotlib.pyplot
+import matplotlib.pyplot  #apt-get install python-matplotlib
 import matplotlib.cbook
-import pandas
+import pandas  #apt-get install python-pandas
+import datetime
 
 def refreshSnortIsEnad():
     snortIsEnaOut=subprocess.Popen("systemctl is-enabled snort.service",shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -55,6 +56,8 @@ def autoRefresh():
         refreshBarnyardIsFled()
         refreshSnortStat()
         refreshBarnyardStat()
+        
+        
 
 def snortEnaSvc():
     subprocess.Popen("echo "+pwd.get()+" | "+"sudo -S systemctl enable snort.service",shell=True)
@@ -285,16 +288,91 @@ def mysql_graph():
     matplotlib.pyplot.tick_params(axis="both",which="major",labelsize=5)
 
 def lsAlert():
+    
+    treeviewlsAlert.delete(*treeviewlsAlert.get_children())
     connection=MySQLdb.connect(host="localhost",user="snort",passwd="snort",db="snort")
     cursor=connection.cursor()
 
-    sql="SELECT sid, cid, signature, sig_name, sig_class_id, sig_priority, timestamp, inet_ntoa(ip_src), inet_ntoa(ip_dst), ip_proto, layer4_sport, layer4_dport FROM acid_event"
+    sql="SELECT sid, cid, signature, sig_name, timestamp, inet_ntoa(ip_src), inet_ntoa(ip_dst), ip_proto FROM acid1_event"
     cursor.execute(sql)
     data=cursor.fetchall()
 
     for row in data:
         treeviewlsAlert.insert("","end",values = row)
+
+def lsAlerttcp():
     
+    treeviewlsAlert.delete(*treeviewlsAlert.get_children())
+    connection=MySQLdb.connect(host="localhost",user="snort",passwd="snort",db="snort")
+    cursor=connection.cursor()
+
+    sql="SELECT sid, cid, signature, sig_name, timestamp, inet_ntoa(ip_src), inet_ntoa(ip_dst), ip_proto FROM acid1_event WHERE ip_proto = 6"
+    cursor.execute(sql)
+    data=cursor.fetchall()
+
+    for row in data:
+        treeviewlsAlert.insert("","end",values = row)
+
+def lsAlerticmp():
+    
+    treeviewlsAlert.delete(*treeviewlsAlert.get_children())
+    connection=MySQLdb.connect(host="localhost",user="snort",passwd="snort",db="snort")
+    cursor=connection.cursor()
+
+    sql="SELECT sid, cid, signature, sig_name, timestamp, inet_ntoa(ip_src), inet_ntoa(ip_dst), ip_proto FROM acid1_event WHERE ip_proto = 1"
+    cursor.execute(sql)
+    data=cursor.fetchall()
+
+    for row in data:
+        treeviewlsAlert.insert("","end",values = row)
+
+def lsAlertFilter():
+    
+    treeviewlsAlert.delete(*treeviewlsAlert.get_children())
+    connection=MySQLdb.connect(host="localhost",user="snort",passwd="snort",db="snort")
+    cursor=connection.cursor()
+
+    sidque = ""
+    sigque = ""
+    signameque = ""
+    srcque = ""
+    dstque = ""
+    dateque = ""
+    proque = ""
+
+    if lssid.get() !="":
+        sidque = str("AND sid LIKE '%"+lssid.get()+"%'")
+        print sidque
+    if lssignature.get() !="":
+        sigque = str("AND signature LIKE '%"+lssignature.get()+"%'")
+        print sigque
+    if lssigname.get() !="":
+        signameque = str("AND sig_name LIKE '%"+lssigname.get()+"%'")
+        print signameque
+    if lsipsrc.get() !="":
+        srcque = str("AND ip_src LIKE '%"+lsipsrc.get()+"%'")
+        print srcque
+    if lsipdst.get() !="":
+        dstque = str("AND ip_dst LIKE '%"+lsipdst.get()+"%'")
+        print dstque
+    if lssdatey.get() !=0 and lssdatem.get() !=0 and lssdated.get() !=0 and lsedatey.get() !=0 and lsedatem.get() !=0 and lsedated.get() !=0 :
+        start = datetime.datetime(lssdatey.get(),lssdatem.get(),lssdated.get()).strftime('%Y-%m-%d %H:%M:%S')
+        end = datetime.datetime(lsedatey.get(),lsedatem.get(),lsedated.get()).strftime('%Y-%m-%d %H:%M:%S')
+        dateque = str ("AND timestamp between '"+start+"' AND '"+end+"'")
+        print dateque
+
+    if lsipproto.get() !="":
+        proque = str("AND ip_proto LIKE '%"+lsipproto.get()+"%'")
+        print proque
+
+
+
+    sql =("SELECT sid,cid,signature,sig_name,timestamp,ip_src,ip_dst,ip_proto FROM acid1_event WHERE cid>-1 %s %s %s %s %s %s %s ORDER BY cid DESC")%(sidque,sigque,signameque,srcque,dstque,dateque,proque)
+    cursor.execute(sql)
+    data=cursor.fetchall()
+    for row in data:
+        treeviewlsAlert.insert("","end",values = row)
+
 
 root=Tkinter.Tk()
 root.resizable(0,0)
@@ -371,6 +449,32 @@ rev=Tkinter.StringVar()
 clTp=Tkinter.StringVar()
 
 pri=Tkinter.StringVar()
+
+lssid=Tkinter.StringVar()
+
+lssignature=Tkinter.StringVar()
+
+lssigname=Tkinter.StringVar()
+
+lsipsrc=Tkinter.StringVar()
+
+lsipdst=Tkinter.StringVar()
+
+lssdatey=Tkinter.IntVar()
+
+lssdatem=Tkinter.IntVar()
+
+lssdated=Tkinter.IntVar()
+
+lsedatey=Tkinter.IntVar()
+
+lsedatem=Tkinter.IntVar()
+
+lsedated=Tkinter.IntVar()
+
+lsipproto=Tkinter.StringVar()
+
+
 
 noteBookMain=ttk.Notebook(root)
 noteBookMain.grid(column=0,row=0,ipadx=5,ipady=5,padx=5,pady=5)
@@ -777,19 +881,15 @@ graphlabel.grid(column=0,row=0,ipadx=5,ipady=5,padx=5,pady=5)
 
 framelsAlert=ttk.Frame(noteBookMain)
 
-treeviewlsAlert=ttk.Treeview(framelsAlert,columns=["sid","cid","signature","sig_name","sig_class_id","sig_priority","timestamp","ip_src","ip_dst","ip_proto","layer4_sport","layer4_dport"],show="headings")
+treeviewlsAlert = ttk.Treeview(framelsAlert,columns=["sid","cid","signature","sig_name","timestamp","ip_src","ip_dst","ip_proto"],show="headings")
 treeviewlsAlert.heading("sid",text="signature id")
-treeviewlsAlert.column("sid",width=40)
+treeviewlsAlert.column("sid",width=90)
 treeviewlsAlert.heading("cid",text="count id")
-treeviewlsAlert.column("cid",width=40)
+treeviewlsAlert.column("cid",width=90)
 treeviewlsAlert.heading("signature",text="signature")
-treeviewlsAlert.column("signature",width=50)
+treeviewlsAlert.column("signature",width=80)
 treeviewlsAlert.heading("sig_name",text="signature name")
-treeviewlsAlert.column("sig_name",width=200)
-treeviewlsAlert.heading("sig_class_id",text="signature class id")
-treeviewlsAlert.column("sig_class_id",width=110)
-treeviewlsAlert.heading("sig_priority",text="signature priority")
-treeviewlsAlert.column("sig_priority",width=110)
+treeviewlsAlert.column("sig_name",width=400)
 treeviewlsAlert.heading("timestamp",text="timestamp")
 treeviewlsAlert.column("timestamp",width=200)
 treeviewlsAlert.heading("ip_src",text="ip_src")
@@ -798,16 +898,86 @@ treeviewlsAlert.heading("ip_dst",text="ip_dst")
 treeviewlsAlert.column("ip_dst",width=110)
 treeviewlsAlert.heading("ip_proto",text="ip_proto")
 treeviewlsAlert.column("ip_proto",width=110)
-treeviewlsAlert.heading("layer4_sport",text="layer4_sport")
-treeviewlsAlert.column("layer4_sport",width=50)
-treeviewlsAlert.heading("layer4_dport",text="layer4_dport")
-treeviewlsAlert.column("layer4_dport",width=50)
 treeviewlsAlert.grid(column=0,row=0,ipadx=5,ipady=5,padx=5,pady=5,sticky=Tkinter.E+Tkinter.W)
 
+scrollbarYAlert=ttk.Scrollbar(framelsAlert,command=treeviewlsAlert.yview)
+scrollbarYAlert.grid(column=1,row=0,sticky=Tkinter.N+Tkinter.S+Tkinter.W)
+treeviewlsAlert.config(yscrollcommand=scrollbarYAlert)
+
+buttonlsAlerttcp=ttk.Button(framelsAlert,text="ALL",command=lsAlert)
+buttonlsAlerttcp.grid(column=10,row=0)
+buttonlsAlerttcp=ttk.Button(framelsAlert,text="TCP",command=lsAlerttcp)
+buttonlsAlerttcp.grid(column=11,row=0)
+buttonlsAlerttcp=ttk.Button(framelsAlert,text="ICMP",command=lsAlerticmp)
+buttonlsAlerttcp.grid(column=12,row=0)
+
+labelFrameFilter=ttk.Labelframe(framelsAlert,text="Filter")
+labelFrameFilter.grid(column=0,row=6,ipadx=5,ipady=5,padx=5,pady=5,sticky=Tkinter.N+Tkinter.E+Tkinter.S+Tkinter.W)
+
+labellssid=ttk.Label(labelFrameFilter,text="SID:")
+labellssid.grid(column=0,row=0,ipadx=5,ipady=5,padx=5,pady=5,sticky=Tkinter.E)
+
+entrylssid=ttk.Entry(labelFrameFilter,textvariable=lssid)
+entrylssid.grid(column=1,row=0,ipadx=3,ipady=3,padx=3,pady=3,sticky=Tkinter.E)
+
+labellssignature=ttk.Label(labelFrameFilter,text="Signature:")
+labellssignature.grid(column=2,row=0,ipadx=5,ipady=5,padx=5,pady=5,sticky=Tkinter.E)
+
+entrylssignature=ttk.Entry(labelFrameFilter,textvariable=lssignature)
+entrylssignature.grid(column=3,row=0,ipadx=3,ipady=3,padx=3,pady=3,sticky=Tkinter.E)
+
+labellssig_name=ttk.Label(labelFrameFilter,text="Signature Name:")
+labellssig_name.grid(column=4,row=0,ipadx=5,ipady=5,padx=5,pady=5,sticky=Tkinter.E)
+
+entrylssig_name=ttk.Entry(labelFrameFilter,textvariable=lssigname)
+entrylssig_name.grid(column=5,row=0,ipadx=3,ipady=3,padx=3,pady=3,sticky=Tkinter.E)
 
 
+labellsip_src=ttk.Label(labelFrameFilter,text="IP Source:")
+labellsip_src.grid(column=0,row=1,ipadx=5,ipady=5,padx=5,pady=5,sticky=Tkinter.E)
+
+entrylsip_src=ttk.Entry(labelFrameFilter,textvariable=lsipsrc)
+entrylsip_src.grid(column=1,row=1,ipadx=3,ipady=3,padx=3,pady=3,sticky=Tkinter.E)
+
+labellsip_dst=ttk.Label(labelFrameFilter,text="IP Destination:")
+labellsip_dst.grid(column=2,row=1,ipadx=5,ipady=5,padx=5,pady=5,sticky=Tkinter.E)
+
+entrylsip_dst=ttk.Entry(labelFrameFilter,textvariable=lsipdst)
+entrylsip_dst.grid(column=3,row=1,ipadx=3,ipady=3,padx=3,pady=3,sticky=Tkinter.E)
+
+labellsip_proto=ttk.Label(labelFrameFilter,text="IP Protocol:")
+labellsip_proto.grid(column=4,row=1,ipadx=5,ipady=5,padx=5,pady=5,sticky=Tkinter.E)
+
+entrylsip_proto=ttk.Entry(labelFrameFilter,textvariable=lsipproto)
+entrylsip_proto.grid(column=5,row=1,ipadx=3,ipady=3,padx=3,pady=3,sticky=Tkinter.E)
+
+labellssdate=ttk.Label(labelFrameFilter,text="Date FROM:")
+labellssdate.grid(column=0,row=2,ipadx=3,ipady=3,padx=3,pady=3,sticky=Tkinter.E)
+
+entrylssdatey=ttk.Entry(labelFrameFilter,textvariable=lssdatey)
+entrylssdatey.grid(column=1,row=2,ipadx=1,ipady=1,padx=1,pady=1,sticky=Tkinter.E)
+
+entrylssdatem=ttk.Entry(labelFrameFilter,textvariable=lssdatem)
+entrylssdatem.grid(column=2,row=2,ipadx=1,ipady=1,padx=1,pady=1,sticky=Tkinter.E)
+
+entrylssdated=ttk.Entry(labelFrameFilter,textvariable=lssdated)
+entrylssdated.grid(column=3,row=2,ipadx=1,ipady=1,padx=1,pady=1,sticky=Tkinter.E)
 
 
+labellsedate=ttk.Label(labelFrameFilter,text="Date TO:")
+labellsedate.grid(column=0,row=3,ipadx=3,ipady=3,padx=3,pady=3,sticky=Tkinter.E)
+
+entrylsedatey=ttk.Entry(labelFrameFilter,textvariable=lsedatey)
+entrylsedatey.grid(column=1,row=3,ipadx=1,ipady=1,padx=1,pady=1,sticky=Tkinter.E)
+
+entrylsedatem=ttk.Entry(labelFrameFilter,textvariable=lsedatem)
+entrylsedatem.grid(column=2,row=3,ipadx=1,ipady=1,padx=1,pady=1,sticky=Tkinter.E)
+
+entrylsedated=ttk.Entry(labelFrameFilter,textvariable=lsedated)
+entrylsedated.grid(column=3,row=3,ipadx=1,ipady=1,padx=1,pady=1,sticky=Tkinter.E)
+
+buttonlsAlertFilter=ttk.Button(labelFrameFilter,text="Search",command=lsAlertFilter)
+buttonlsAlertFilter.grid(column=3,row=10,ipadx=5,ipady=5,padx=5,pady=5,sticky=Tkinter.E)
 
                              
 noteBookMain.add(frameHome,text="Home")
