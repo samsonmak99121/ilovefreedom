@@ -691,28 +691,40 @@ def lsAlertFilter():
     dateque = ""
     proque = ""
 
-    if lssid.get() !="":
-        sidque = str("AND sid LIKE '%"+lssid.get()+"%'")
-        
-    if lssignature.get() !="":
-        sigque = str("AND signature LIKE '%"+lssignature.get()+"%'")
+    try:
+        if lssid.get() != ""  :
+            value = int(lssid.get())
+            sidque = str("AND sid LIKE '"+lssid.get()+"'")
+            print sidque
+    except ValueError:
+        tkMessageBox.showerror("Error","Not Integer")
+    
+    try:
+        if lssignature.get() !="":
+            value = int(lssingature.get())
+            sigque = str("AND signature LIKE '"+lssignature.get()+"'")
+    except ValueError:
+        tkMessageBox.showerror("Error","Not Integer")
         
     if lssigname.get() !="":
         signameque = str("AND sig_name LIKE '%"+lssigname.get()+"%'")
         
     if lsipsrc.get() !="":
-        srcque = str("AND ip_src LIKE '%"+lsipsrc.get()+"%'")
-        
+        srcque = str("AND ip_src LIKE inet_aton('"+lsipsrc.get()+"')")
+        print srcque
     if lsipdst.get() !="":
-        dstque = str("AND ip_dst LIKE '%"+lsipdst.get()+"%'")
+        dstque = str("AND ip_dst LIKE inet_aton('"+lsipdst.get()+"')")
         
-    if lssdatey.get() !=0 and lssdatem.get() !=0 and lssdated.get() !=0 and lsedatey.get() !=0 and lsedatem.get() !=0 and lsedated.get() !=0 :
-        start = datetime.datetime(lssdatey.get(),lssdatem.get(),lssdated.get()).strftime('%Y-%m-%d %H:%M:%S')
-        end = datetime.datetime(lsedatey.get(),lsedatem.get(),lsedated.get()).strftime('%Y-%m-%d %H:%M:%S')
-        dateque = str ("AND timestamp between '"+start+"' AND '"+end+"'")
+    try:
+        if lssdatey.get() !=0 and lssdatem.get() !=0 and lssdated.get() !=0 and lsedatey.get() !=0 and lsedatem.get() !=0 and lsedated.get() !=0 :
+            start = datetime.datetime(lssdatey.get(),lssdatem.get(),lssdated.get()).strftime('%Y-%m-%d %H:%M:%S')
+            end = datetime.datetime(lsedatey.get(),lsedatem.get(),lsedated.get()).strftime('%Y-%m-%d %H:%M:%S')
+            dateque = str ("AND timestamp between '"+start+"' AND '"+end+"'")
+    except ValueError:
+        tkMessageBox.showerror("Error","Not Integer")
         
     if lsipproto.get() !="":
-        proque = str("AND ip_proto LIKE '%"+lsipproto.get()+"%'")
+        proque = str("AND ip_proto LIKE (CASE '%"+lsipproto.get()+"%' WHEN '%ICMP%' THEN '1' WHEN '%TCP%' THEN '6'  WHEN '%UDP%' THEN '17' ELSE '%"+lsipproto.get()+"%' END)" )
 
     sql =("SELECT sid,cid,signature,sig_name,timestamp,inet_ntoa(ip_src), inet_ntoa(ip_dst),(CASE ip_proto WHEN '1' THEN 'ICMP' WHEN '6' THEN 'TCP' WHEN '17' THEN 'UDP' ELSE acid1_event.ip_proto END) as ip_proto FROM acid1_event WHERE cid >=1 %s %s %s %s %s %s %s ORDER BY cid DESC")%(sidque,sigque,signameque,srcque,dstque,dateque,proque)
     cursor.execute(sql)
@@ -1580,7 +1592,7 @@ treeviewAlert.column("cid",width=90)
 treeviewAlert.heading("signature",text="Sig")
 treeviewAlert.column("signature",width=80)
 treeviewAlert.heading("sig_name",text="Signature Name")
-treeviewAlert.column("sig_name",width=400)
+treeviewAlert.column("sig_name",width=250)
 treeviewAlert.heading("timestamp",text="Timestamp")
 treeviewAlert.column("timestamp",width=200)
 treeviewAlert.heading("ip_src",text="Source Address")
